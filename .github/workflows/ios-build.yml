@@ -75,8 +75,8 @@ jobs:
     - name: 创建项目配置文件
       run: |
         # 创建Info.plist（如果不存在）
-        if [ ! -f "ios/Info.plist" ]; then
-          cat > ios/Info.plist << EOF
+        if [ ! -f "Info.plist" ]; then
+          cat > Info.plist << EOF
         <?xml version="1.0" encoding="UTF-8"?>
         <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
         <plist version="1.0">
