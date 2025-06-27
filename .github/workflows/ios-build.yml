@@ -1,0 +1,778 @@
+name: iOS应用打包 - 未签名IPA
+
+on:
+  push:
+    branches: [ main, develop ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      build_configuration:
+        description: '构建配置'
+        required: true
+        default: 'Release'
+        type: choice
+        options:
+        - Debug
+        - Release
+      export_unsigned:
+        description: '导出未签名IPA'
+        required: true
+        default: true
+        type: boolean
+
+env:
+  XCODE_VERSION: '15.0'
+  IOS_VERSION: '17.0'
+  PROJECT_NAME: 'StockTradingApp'
+  SCHEME_NAME: 'StockTradingApp'
+  
+jobs:
+  build-ios:
+    name: 构建iOS应用
+    runs-on: macos-latest
+    
+    steps:
+    - name: 检出代码
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: 设置Xcode版本
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: ${{ env.XCODE_VERSION }}
+        
+    - name: 显示Xcode信息
+      run: |
+        xcodebuild -version
+        xcrun simctl list devicetypes
+        
+    - name: 缓存Swift Package Manager
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/Library/Developer/Xcode/DerivedData
+          ~/.swiftpm
+        key: ${{ runner.os }}-spm-${{ hashFiles('**/Package.swift', '**/Package.resolved') }}
+        restore-keys: |
+          ${{ runner.os }}-spm-
+          
+    - name: 安装依赖
+      run: |
+        # 如果使用CocoaPods
+        if [ -f "Podfile" ]; then
+          sudo gem install cocoapods
+          pod install
+        fi
+        
+        # 如果使用Swift Package Manager
+        if [ -f "Package.swift" ]; then
+          swift package resolve
+        fi
+        
+    - name: 创建项目配置文件
+      run: |
+        # 创建Info.plist（如果不存在）
+        if [ ! -f "ios/Info.plist" ]; then
+          cat > ios/Info.plist << EOF
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+            <key>CFBundleDevelopmentRegion</key>
+            <string>zh_CN</string>
+            <key>CFBundleDisplayName</key>
+            <string>股票交易模拟器</string>
+            <key>CFBundleExecutable</key>
+            <string>\$(EXECUTABLE_NAME)</string>
+            <key>CFBundleIdentifier</key>
+            <string>com.stocktrading.app</string>
+            <key>CFBundleInfoDictionaryVersion</key>
+            <string>6.0</string>
+            <key>CFBundleName</key>
+            <string>\$(PRODUCT_NAME)</string>
+            <key>CFBundlePackageType</key>
+            <string>APPL</string>
+            <key>CFBundleShortVersionString</key>
+            <string>1.0.0</string>
+            <key>CFBundleVersion</key>
+            <string>\$(CURRENT_PROJECT_VERSION)</string>
+            <key>LSRequiresIPhoneOS</key>
+            <true/>
+            <key>UIApplicationSceneManifest</key>
+            <dict>
+                <key>UIApplicationSupportsMultipleScenes</key>
+                <true/>
+                <key>UISceneConfigurations</key>
+                <dict>
+                    <key>UIWindowSceneSessionRoleApplication</key>
+                    <array>
+                        <dict>
+                            <key>UISceneConfigurationName</key>
+                            <string>Default Configuration</string>
+                            <key>UISceneDelegateClassName</key>
+                            <string></string>
+                        </dict>
+                    </array>
+                </dict>
+            </dict>
+            <key>UIApplicationSupportsIndirectInputEvents</key>
+            <true/>
+            <key>UILaunchScreen</key>
+            <dict/>
+            <key>UIRequiredDeviceCapabilities</key>
+            <array>
+                <string>armv7</string>
+            </array>
+            <key>UISupportedInterfaceOrientations</key>
+            <array>
+                <string>UIInterfaceOrientationPortrait</string>
+                <string>UIInterfaceOrientationLandscapeLeft</string>
+                <string>UIInterfaceOrientationLandscapeRight</string>
+            </array>
+            <key>UISupportedInterfaceOrientations~ipad</key>
+            <array>
+                <string>UIInterfaceOrientationPortrait</string>
+                <string>UIInterfaceOrientationPortraitUpsideDown</string>
+                <string>UIInterfaceOrientationLandscapeLeft</string>
+                <string>UIInterfaceOrientationLandscapeRight</string>
+            </array>
+            <key>NSAppTransportSecurity</key>
+            <dict>
+                <key>NSAllowsArbitraryLoads</key>
+                <true/>
+            </dict>
+        </dict>
+        </plist>
+        EOF
+        fi
+        
+    - name: 创建Xcode项目文件
+      run: |
+        # 创建项目目录结构
+        mkdir -p ios/StockTradingApp.xcodeproj
+        
+        # 创建project.pbxproj文件
+        cat > ios/StockTradingApp.xcodeproj/project.pbxproj << 'EOF'
+        // !$*UTF8*$!
+        {
+            archiveVersion = 1;
+            classes = {
+            };
+            objectVersion = 56;
+            objects = {
+                /* Begin PBXBuildFile section */
+                1D1D1D1D1D1D1D1D /* StockTradingApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D1D1D1C1D1D1D1C /* StockTradingApp.swift */; };
+                1D1D1D1F1D1D1D1F /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D1D1D1E1D1D1D1E /* ContentView.swift */; };
+                1D1D1D211D1D1D21 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1D1D1D201D1D1D20 /* Assets.xcassets */; };
+                /* End PBXBuildFile section */
+                
+                /* Begin PBXFileReference section */
+                1D1D1D191D1D1D19 /* StockTradingApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StockTradingApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+                1D1D1D1C1D1D1D1C /* StockTradingApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockTradingApp.swift; sourceTree = "<group>"; };
+                1D1D1D1E1D1D1D1E /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+                1D1D1D201D1D1D20 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+                /* End PBXFileReference section */
+                
+                /* Begin PBXGroup section */
+                1D1D1D101D1D1D10 = {
+                    isa = PBXGroup;
+                    children = (
+                        1D1D1D1B1D1D1D1B /* StockTradingApp */,
+                        1D1D1D1A1D1D1A1A /* Products */,
+                    );
+                    sourceTree = "<group>";
+                };
+                1D1D1D1A1D1D1A1A /* Products */ = {
+                    isa = PBXGroup;
+                    children = (
+                        1D1D1D191D1D1D19 /* StockTradingApp.app */,
+                    );
+                    name = Products;
+                    sourceTree = "<group>";
+                };
+                1D1D1D1B1D1D1D1B /* StockTradingApp */ = {
+                    isa = PBXGroup;
+                    children = (
+                        1D1D1D1C1D1D1D1C /* StockTradingApp.swift */,
+                        1D1D1D1E1D1D1D1E /* ContentView.swift */,
+                        1D1D1D201D1D1D20 /* Assets.xcassets */,
+                    );
+                    path = StockTradingApp;
+                    sourceTree = "<group>";
+                };
+                /* End PBXGroup section */
+                
+                /* Begin PBXNativeTarget section */
+                1D1D1D181D1D1D18 /* StockTradingApp */ = {
+                    isa = PBXNativeTarget;
+                    buildConfigurationList = 1D1D1D271D1D1D27 /* Build configuration list for PBXNativeTarget "StockTradingApp" */;
+                    buildPhases = (
+                        1D1D1D151D1D1D15 /* Sources */,
+                        1D1D1D161D1D1D16 /* Frameworks */,
+                        1D1D1D171D1D1D17 /* Resources */,
+                    );
+                    buildRules = (
+                    );
+                    dependencies = (
+                    );
+                    name = StockTradingApp;
+                    productName = StockTradingApp;
+                    productReference = 1D1D1D191D1D1D19 /* StockTradingApp.app */;
+                    productType = "com.apple.product-type.application";
+                };
+                /* End PBXNativeTarget section */
+                
+                /* Begin XCBuildConfiguration section */
+                1D1D1D251D1D1D25 /* Debug */ = {
+                    isa = XCBuildConfiguration;
+                    buildSettings = {
+                        ALWAYS_SEARCH_USER_PATHS = NO;
+                        CLANG_ANALYZER_NONNULL = YES;
+                        CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+                        CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+                        CLANG_ENABLE_MODULES = YES;
+                        CLANG_ENABLE_OBJC_ARC = YES;
+                        CLANG_ENABLE_OBJC_WEAK = YES;
+                        CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+                        CLANG_WARN_BOOL_CONVERSION = YES;
+                        CLANG_WARN_COMMA = YES;
+                        CLANG_WARN_CONSTANT_CONVERSION = YES;
+                        CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+                        CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+                        CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+                        CLANG_WARN_EMPTY_BODY = YES;
+                        CLANG_WARN_ENUM_CONVERSION = YES;
+                        CLANG_WARN_INFINITE_RECURSION = YES;
+                        CLANG_WARN_INT_CONVERSION = YES;
+                        CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+                        CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+                        CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+                        CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+                        CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+                        CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+                        CLANG_WARN_STRICT_PROTOTYPES = YES;
+                        CLANG_WARN_SUSPICIOUS_MOVE = YES;
+                        CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+                        CLANG_WARN_UNREACHABLE_CODE = YES;
+                        CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+                        COPY_PHASE_STRIP = NO;
+                        DEBUG_INFORMATION_FORMAT = dwarf;
+                        ENABLE_STRICT_OBJC_MSGSEND = YES;
+                        ENABLE_TESTABILITY = YES;
+                        GCC_C_LANGUAGE_STANDARD = gnu11;
+                        GCC_DYNAMIC_NO_PIC = NO;
+                        GCC_NO_COMMON_BLOCKS = YES;
+                        GCC_OPTIMIZATION_LEVEL = 0;
+                        GCC_PREPROCESSOR_DEFINITIONS = (
+                            "DEBUG=1",
+                            "$(inherited)",
+                        );
+                        GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+                        GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+                        GCC_WARN_UNDECLARED_SELECTOR = YES;
+                        GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+                        GCC_WARN_UNUSED_FUNCTION = YES;
+                        GCC_WARN_UNUSED_VARIABLE = YES;
+                        IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+                        MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+                        MTL_FAST_MATH = YES;
+                        ONLY_ACTIVE_ARCH = YES;
+                        SDKROOT = iphoneos;
+                        SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+                        SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+                    };
+                    name = Debug;
+                };
+                1D1D1D261D1D1D26 /* Release */ = {
+                    isa = XCBuildConfiguration;
+                    buildSettings = {
+                        ALWAYS_SEARCH_USER_PATHS = NO;
+                        CLANG_ANALYZER_NONNULL = YES;
+                        CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+                        CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+                        CLANG_ENABLE_MODULES = YES;
+                        CLANG_ENABLE_OBJC_ARC = YES;
+                        CLANG_ENABLE_OBJC_WEAK = YES;
+                        CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+                        CLANG_WARN_BOOL_CONVERSION = YES;
+                        CLANG_WARN_COMMA = YES;
+                        CLANG_WARN_CONSTANT_CONVERSION = YES;
+                        CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+                        CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+                        CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+                        CLANG_WARN_EMPTY_BODY = YES;
+                        CLANG_WARN_ENUM_CONVERSION = YES;
+                        CLANG_WARN_INFINITE_RECURSION = YES;
+                        CLANG_WARN_INT_CONVERSION = YES;
+                        CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+                        CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+                        CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+                        CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+                        CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+                        CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+                        CLANG_WARN_STRICT_PROTOTYPES = YES;
+                        CLANG_WARN_SUSPICIOUS_MOVE = YES;
+                        CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+                        CLANG_WARN_UNREACHABLE_CODE = YES;
+                        CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+                        COPY_PHASE_STRIP = NO;
+                        DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+                        ENABLE_NS_ASSERTIONS = NO;
+                        ENABLE_STRICT_OBJC_MSGSEND = YES;
+                        GCC_C_LANGUAGE_STANDARD = gnu11;
+                        GCC_NO_COMMON_BLOCKS = YES;
+                        GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+                        GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+                        GCC_WARN_UNDECLARED_SELECTOR = YES;
+                        GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+                        GCC_WARN_UNUSED_FUNCTION = YES;
+                        GCC_WARN_UNUSED_VARIABLE = YES;
+                        IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+                        MTL_ENABLE_DEBUG_INFO = NO;
+                        MTL_FAST_MATH = YES;
+                        SDKROOT = iphoneos;
+                        SWIFT_COMPILATION_MODE = wholemodule;
+                        SWIFT_OPTIMIZATION_LEVEL = "-O";
+                        VALIDATE_PRODUCT = YES;
+                    };
+                    name = Release;
+                };
+                1D1D1D281D1D1D28 /* Debug */ = {
+                    isa = XCBuildConfiguration;
+                    buildSettings = {
+                        ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+                        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+                        CODE_SIGN_STYLE = Manual;
+                        CODE_SIGN_IDENTITY = "";
+                        CURRENT_PROJECT_VERSION = 1;
+                        DEVELOPMENT_ASSET_PATHS = "";
+                        DEVELOPMENT_TEAM = "";
+                        ENABLE_PREVIEWS = YES;
+                        GENERATE_INFOPLIST_FILE = NO;
+                        INFOPLIST_FILE = "Info.plist";
+                        INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+                        INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+                        INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+                        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+                        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+                        IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+                        LD_RUNPATH_SEARCH_PATHS = (
+                            "$(inherited)",
+                            "@executable_path/Frameworks",
+                        );
+                        MARKETING_VERSION = 1.0;
+                        PRODUCT_BUNDLE_IDENTIFIER = com.stocktrading.app;
+                        PRODUCT_NAME = "$(TARGET_NAME)";
+                        PROVISIONING_PROFILE_SPECIFIER = "";
+                        SWIFT_EMIT_LOC_STRINGS = YES;
+                        SWIFT_VERSION = 5.0;
+                        TARGETED_DEVICE_FAMILY = "1,2";
+                    };
+                    name = Debug;
+                };
+                1D1D1D291D1D1D29 /* Release */ = {
+                    isa = XCBuildConfiguration;
+                    buildSettings = {
+                        ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+                        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+                        CODE_SIGN_STYLE = Manual;
+                        CODE_SIGN_IDENTITY = "";
+                        CURRENT_PROJECT_VERSION = 1;
+                        DEVELOPMENT_ASSET_PATHS = "";
+                        DEVELOPMENT_TEAM = "";
+                        ENABLE_PREVIEWS = YES;
+                        GENERATE_INFOPLIST_FILE = NO;
+                        INFOPLIST_FILE = "Info.plist";
+                        INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+                        INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+                        INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+                        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+                        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+                        IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+                        LD_RUNPATH_SEARCH_PATHS = (
+                            "$(inherited)",
+                            "@executable_path/Frameworks",
+                        );
+                        MARKETING_VERSION = 1.0;
+                        PRODUCT_BUNDLE_IDENTIFIER = com.stocktrading.app;
+                        PRODUCT_NAME = "$(TARGET_NAME)";
+                        PROVISIONING_PROFILE_SPECIFIER = "";
+                        SWIFT_EMIT_LOC_STRINGS = YES;
+                        SWIFT_VERSION = 5.0;
+                        TARGETED_DEVICE_FAMILY = "1,2";
+                    };
+                    name = Release;
+                };
+                /* End XCBuildConfiguration section */
+                
+                /* Begin XCConfigurationList section */
+                1D1D1D141D1D1D14 /* Build configuration list for PBXProject "StockTradingApp" */ = {
+                    isa = XCConfigurationList;
+                    buildConfigurations = (
+                        1D1D1D251D1D1D25 /* Debug */,
+                        1D1D1D261D1D1D26 /* Release */,
+                    );
+                    defaultConfigurationIsVisible = 0;
+                    defaultConfigurationName = Release;
+                };
+                1D1D1D271D1D1D27 /* Build configuration list for PBXNativeTarget "StockTradingApp" */ = {
+                    isa = XCConfigurationList;
+                    buildConfigurations = (
+                        1D1D1D281D1D1D28 /* Debug */,
+                        1D1D1D291D1D1D29 /* Release */,
+                    );
+                    defaultConfigurationIsVisible = 0;
+                    defaultConfigurationName = Release;
+                };
+                /* End XCConfigurationList section */
+            };
+            rootObject = 1D1D1D111D1D1D11 /* Project object */;
+        }
+        EOF
+        
+    - name: 复制源代码文件
+      run: |
+        # 创建源码目录结构
+        mkdir -p ios/StockTradingApp
+        
+        # 复制所有Swift文件到正确位置
+        find . -name "*.swift" -not -path "./.git/*" -not -path "./ios/StockTradingApp.xcodeproj/*" -exec cp {} ios/StockTradingApp/ \;
+        
+        # 创建基本的Assets.xcassets
+        mkdir -p ios/StockTradingApp/Assets.xcassets/AppIcon.appiconset
+        cat > ios/StockTradingApp/Assets.xcassets/Contents.json << EOF
+        {
+          "info" : {
+            "author" : "xcode",
+            "version" : 1
+          }
+        }
+        EOF
+        
+        cat > ios/StockTradingApp/Assets.xcassets/AppIcon.appiconset/Contents.json << EOF
+        {
+          "images" : [
+            {
+              "idiom" : "iphone",
+              "scale" : "2x",
+              "size" : "20x20"
+            },
+            {
+              "idiom" : "iphone",
+              "scale" : "3x",
+              "size" : "20x20"
+            },
+            {
+              "idiom" : "iphone",
+              "scale" : "2x",
+              "size" : "29x29"
+            },
+            {
+              "idiom" : "iphone",
+              "scale" : "3x",
+              "size" : "29x29"
+            },
+            {
+              "idiom" : "iphone",
+              "scale" : "2x",
+              "size" : "40x40"
+            },
+            {
+              "idiom" : "iphone",
+              "scale" : "3x",
+              "size" : "40x40"
+            },
+            {
+              "idiom" : "iphone",
+              "scale" : "2x",
+              "size" : "60x60"
+            },
+            {
+              "idiom" : "iphone",
+              "scale" : "3x",
+              "size" : "60x60"
+            },
+            {
+              "idiom" : "ipad",
+              "scale" : "1x",
+              "size" : "20x20"
+            },
+            {
+              "idiom" : "ipad",
+              "scale" : "2x",
+              "size" : "20x20"
+            },
+            {
+              "idiom" : "ipad",
+              "scale" : "1x",
+              "size" : "29x29"
+            },
+            {
+              "idiom" : "ipad",
+              "scale" : "2x",
+              "size" : "29x29"
+            },
+            {
+              "idiom" : "ipad",
+              "scale" : "1x",
+              "size" : "40x40"
+            },
+            {
+              "idiom" : "ipad",
+              "scale" : "2x",
+              "size" : "40x40"
+            },
+            {
+              "idiom" : "ipad",
+              "scale" : "2x",
+              "size" : "76x76"
+            },
+            {
+              "idiom" : "ipad",
+              "scale" : "2x",
+              "size" : "83.5x83.5"
+            },
+            {
+              "idiom" : "ios-marketing",
+              "scale" : "1x",
+              "size" : "1024x1024"
+            }
+          ],
+          "info" : {
+            "author" : "xcode",
+            "version" : 1
+          }
+        }
+        EOF
+        
+    - name: 列出项目文件
+      run: |
+        echo "=== 项目文件结构 ==="
+        find ios/ -type f -name "*.swift" -o -name "*.plist" -o -name "*.pbxproj" | head -20
+        
+    - name: 清理和构建项目
+      run: |
+        cd ios
+        
+        # 清理之前的构建
+        xcodebuild clean \
+          -project StockTradingApp.xcodeproj \
+          -scheme ${{ env.SCHEME_NAME }} \
+          -configuration ${{ github.event.inputs.build_configuration || 'Release' }}
+          
+    - name: 构建应用程序
+      env:
+        BUILD_CONFIGURATION: ${{ github.event.inputs.build_configuration || 'Release' }}
+      run: |
+        cd ios
+        
+        # 构建应用到模拟器
+        xcodebuild build \
+          -project StockTradingApp.xcodeproj \
+          -scheme ${{ env.SCHEME_NAME }} \
+          -configuration $BUILD_CONFIGURATION \
+          -destination 'generic/platform=iOS Simulator' \
+          -derivedDataPath build/ \
+          CODE_SIGN_IDENTITY="" \
+          CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGNING_ALLOWED=NO \
+          ONLY_ACTIVE_ARCH=NO
+          
+    - name: 构建真机版本（用于IPA）
+      env:
+        BUILD_CONFIGURATION: ${{ github.event.inputs.build_configuration || 'Release' }}
+      run: |
+        cd ios
+        
+        # 构建真机版本
+        xcodebuild build \
+          -project StockTradingApp.xcodeproj \
+          -scheme ${{ env.SCHEME_NAME }} \
+          -configuration $BUILD_CONFIGURATION \
+          -destination 'generic/platform=iOS' \
+          -derivedDataPath build/ \
+          CODE_SIGN_IDENTITY="" \
+          CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGNING_ALLOWED=NO \
+          ONLY_ACTIVE_ARCH=NO
+          
+    - name: 创建未签名IPA
+      if: ${{ github.event.inputs.export_unsigned == 'true' || github.event.inputs.export_unsigned == true }}
+      run: |
+        cd ios
+        
+        # 查找构建的应用程序
+        APP_PATH=$(find build/Build/Products/${{ github.event.inputs.build_configuration || 'Release' }}-iphoneos -name "*.app" | head -1)
+        
+        if [ -z "$APP_PATH" ]; then
+          echo "错误: 找不到构建的应用程序"
+          exit 1
+        fi
+        
+        echo "找到应用程序: $APP_PATH"
+        
+        # 创建Payload目录
+        mkdir -p Payload
+        
+        # 复制应用程序到Payload目录
+        cp -R "$APP_PATH" Payload/
+        
+        # 创建IPA文件
+        zip -r "StockTradingApp-unsigned.ipa" Payload/
+        
+        # 验证IPA文件
+        ls -la *.ipa
+        
+        # 显示应用信息
+        echo "=== 应用程序信息 ==="
+        /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP_PATH/Info.plist" || echo "无法读取Bundle ID"
+        /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$APP_PATH/Info.plist" || echo "无法读取版本号"
+        /usr/libexec/PlistBuddy -c "Print :CFBundleDisplayName" "$APP_PATH/Info.plist" || echo "无法读取显示名称"
+        
+    - name: 上传IPA构建产物
+      if: ${{ github.event.inputs.export_unsigned == 'true' || github.event.inputs.export_unsigned == true }}
+      uses: actions/upload-artifact@v3
+      with:
+        name: StockTradingApp-IPA-${{ github.event.inputs.build_configuration || 'Release' }}-${{ github.run_number }}
+        path: |
+          ios/*.ipa
+          ios/build/Build/Products/**/*.dSYM
+        retention-days: 30
+        
+    - name: 上传应用程序文件
+      uses: actions/upload-artifact@v3
+      with:
+        name: StockTradingApp-App-${{ github.event.inputs.build_configuration || 'Release' }}-${{ github.run_number }}
+        path: |
+          ios/build/Build/Products/**/*.app
+          ios/build/Build/Products/**/*.dSYM
+        retention-days: 30
+        
+    - name: 生成构建报告
+      run: |
+        cd ios
+        
+        echo "# iOS构建报告" > build-report.md
+        echo "" >> build-report.md
+        echo "## 构建信息" >> build-report.md
+        echo "- **构建时间**: $(date)" >> build-report.md
+        echo "- **构建配置**: ${{ github.event.inputs.build_configuration || 'Release' }}" >> build-report.md
+        echo "- **Xcode版本**: $(xcodebuild -version | head -1)" >> build-report.md
+        echo "- **iOS SDK版本**: $(xcrun --sdk iphoneos --show-sdk-version)" >> build-report.md
+        echo "- **Git提交**: ${{ github.sha }}" >> build-report.md
+        echo "" >> build-report.md
+        
+        if [ -f "StockTradingApp-unsigned.ipa" ]; then
+          echo "## IPA文件信息" >> build-report.md
+          echo "- **文件名**: StockTradingApp-unsigned.ipa" >> build-report.md
+          echo "- **文件大小**: $(ls -lh *.ipa | awk '{print $5}')" >> build-report.md
+          echo "- **创建时间**: $(date)" >> build-report.md
+          echo "" >> build-report.md
+          echo "## 安装说明" >> build-report.md
+          echo "1. 下载未签名IPA文件" >> build-report.md
+          echo "2. 使用牛蛙助手或其他签名工具进行签名" >> build-report.md
+          echo "3. 通过Xcode或其他工具安装到设备" >> build-report.md
+          echo "" >> build-report.md
+        fi
+        
+        echo "## 使用说明" >> build-report.md
+        echo "### Windows用户安装指南" >> build-report.md
+        echo "1. 下载构建的IPA文件" >> build-report.md
+        echo "2. 使用以下工具之一进行签名:" >> build-report.md
+        echo "   - 牛蛙助手 (推荐)" >> build-report.md
+        echo "   - AltStore" >> build-report.md
+        echo "   - Sideloadly" >> build-report.md
+        echo "   - 3uTools" >> build-report.md
+        echo "3. 安装签名后的应用到iOS设备" >> build-report.md
+        echo "" >> build-report.md
+        echo "### 开发者证书签名" >> build-report.md
+        echo "如果您有开发者证书，可以使用以下命令签名:" >> build-report.md
+        echo '```bash' >> build-report.md
+        echo 'codesign -f -s "Your Developer Certificate" StockTradingApp-unsigned.ipa' >> build-report.md
+        echo '```' >> build-report.md
+        
+        cat build-report.md
+        
+    - name: 上传构建报告
+      uses: actions/upload-artifact@v3
+      with:
+        name: Build-Report-${{ github.run_number }}
+        path: ios/build-report.md
+        retention-days: 90
+
+  # 发布job（当有标签推送时）
+  release:
+    name: 创建发布版本
+    needs: build-ios
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+    - name: 检出代码
+      uses: actions/checkout@v4
+      
+    - name: 下载构建产物
+      uses: actions/download-artifact@v3
+      with:
+        pattern: StockTradingApp-*
+        path: artifacts/
+        
+    - name: 创建发布说明
+      run: |
+        echo "# 股票交易模拟器 ${GITHUB_REF#refs/tags/}" > release-notes.md
+        echo "" >> release-notes.md
+        echo "## 新功能" >> release-notes.md
+        echo "- 完整的股票交易模拟功能" >> release-notes.md
+        echo "- 实时市场数据同步" >> release-notes.md
+        echo "- 风险管理系统" >> release-notes.md
+        echo "- 投资组合管理" >> release-notes.md
+        echo "" >> release-notes.md
+        echo "## 安装说明" >> release-notes.md
+        echo "1. 下载未签名IPA文件" >> release-notes.md
+        echo "2. 使用牛蛙助手或其他签名工具进行签名" >> release-notes.md
+        echo "3. 安装到iOS设备" >> release-notes.md
+        echo "" >> release-notes.md
+        echo "## 系统要求" >> release-notes.md
+        echo "- iOS 16.0或更高版本" >> release-notes.md
+        echo "- iPhone或iPad设备" >> release-notes.md
+        echo "" >> release-notes.md
+        echo "## 技术支持" >> release-notes.md
+        echo "如有问题，请提交Issue或联系开发团队。" >> release-notes.md
+        
+    - name: 创建GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          artifacts/**/*.ipa
+          artifacts/**/build-report.md
+        body_path: release-notes.md
+        draft: false
+        prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') }}
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # 通知job
+  notify:
+    name: 构建通知
+    needs: [build-ios]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+    - name: 发送构建通知
+      run: |
+        if [ "${{ needs.build-ios.result }}" == "success" ]; then
+          echo "✅ iOS应用构建成功！"
+          echo "📱 未签名IPA文件已生成，可用于牛蛙签名"
+          echo "📦 构建产物已上传到GitHub Actions Artifacts"
+        else
+          echo "❌ iOS应用构建失败"
+          echo "🔍 请检查构建日志以了解详细错误信息"
+        fi
+        
+        echo ""
+        echo "🔗 构建详情: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

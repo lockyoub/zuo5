@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="22522" systemVersion="23F79" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+    <entity name="StockEntity" representedClassName="StockEntity" syncable="YES">
+        <attribute name="amount" optional="YES" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="askPrices" optional="YES" attributeType="String"/>
+        <attribute name="askVolumes" optional="YES" attributeType="String"/>
+        <attribute name="bidPrices" optional="YES" attributeType="String"/>
+        <attribute name="bidVolumes" optional="YES" attributeType="String"/>
+        <attribute name="change" optional="YES" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="changePercent" optional="YES" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="exchange" attributeType="String"/>
+        <attribute name="lastPrice" optional="YES" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="name" attributeType="String"/>
+        <attribute name="symbol" attributeType="String"/>
+        <attribute name="timestamp" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="volume" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <relationship name="klines" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="KLineEntity" inverseName="stock" inverseEntity="KLineEntity"/>
+        <relationship name="orders" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="OrderEntity" inverseName="stock" inverseEntity="OrderEntity"/>
+        <relationship name="positions" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="PositionEntity" inverseName="stock" inverseEntity="PositionEntity"/>
+        <relationship name="trades" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="TradeEntity" inverseName="stock" inverseEntity="TradeEntity"/>
+        <uniquenessConstraints>
+            <uniquenessConstraint>
+                <constraint value="symbol"/>
+            </uniquenessConstraint>
+        </uniquenessConstraints>
+    </entity>
+    <entity name="KLineEntity" representedClassName="KLineEntity" syncable="YES">
+        <attribute name="amount" optional="YES" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="close" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="high" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="low" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="open" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="symbol" attributeType="String"/>
+        <attribute name="timeframe" attributeType="String"/>
+        <attribute name="timestamp" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="volume" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <relationship name="stock" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="StockEntity" inverseName="klines" inverseEntity="StockEntity"/>
+        <uniquenessConstraints>
+            <uniquenessConstraint>
+                <constraint value="symbol"/>
+                <constraint value="timeframe"/>
+                <constraint value="timestamp"/>
+            </uniquenessConstraint>
+        </uniquenessConstraints>
+    </entity>
+    <entity name="TradeEntity" representedClassName="TradeEntity" syncable="YES">
+        <attribute name="amount" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="commission" optional="YES" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="direction" attributeType="String"/>
+        <attribute name="id" attributeType="String"/>
+        <attribute name="pnl" optional="YES" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="price" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="quantity" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="strategy" optional="YES" attributeType="String"/>
+        <attribute name="symbol" attributeType="String"/>
+        <attribute name="timestamp" attributeType="Date" usesScalarValueType="NO"/>
+        <relationship name="stock" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="StockEntity" inverseName="trades" inverseEntity="StockEntity"/>
+        <relationship name="strategyEntity" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="StrategyEntity" inverseName="trades" inverseEntity="StrategyEntity"/>
+        <uniquenessConstraints>
+            <uniquenessConstraint>
+                <constraint value="id"/>
+            </uniquenessConstraint>
+        </uniquenessConstraints>
+    </entity>
+    <entity name="PositionEntity" representedClassName="PositionEntity" syncable="YES">
+        <attribute name="avgCost" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="currentPrice" optional="YES" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="lastUpdate" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="marketValue" optional="YES" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="pnl" optional="YES" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="pnlPercent" optional="YES" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="quantity" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="symbol" attributeType="String"/>
+        <relationship name="stock" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="StockEntity" inverseName="positions" inverseEntity="StockEntity"/>
+        <relationship name="trades" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="TradeEntity"/>
+        <uniquenessConstraints>
+            <uniquenessConstraint>
+                <constraint value="symbol"/>
+            </uniquenessConstraint>
+        </uniquenessConstraints>
+    </entity>
+    <entity name="StrategyEntity" representedClassName="StrategyEntity" syncable="YES">
+        <attribute name="createdAt" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="id" attributeType="String"/>
+        <attribute name="isActive" attributeType="Boolean" defaultValueString="YES" usesScalarValueType="YES"/>
+        <attribute name="name" attributeType="String"/>
+        <attribute name="parameters" optional="YES" attributeType="String"/>
+        <attribute name="timeframe" attributeType="String"/>
+        <attribute name="type" attributeType="String"/>
+        <attribute name="updatedAt" attributeType="Date" usesScalarValueType="NO"/>
+        <relationship name="signals" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="StrategySignalEntity" inverseName="strategy" inverseEntity="StrategySignalEntity"/>
+        <relationship name="trades" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="TradeEntity" inverseName="strategyEntity" inverseEntity="TradeEntity"/>
+        <uniquenessConstraints>
+            <uniquenessConstraint>
+                <constraint value="id"/>
+            </uniquenessConstraint>
+        </uniquenessConstraints>
+    </entity>
+    <entity name="OrderEntity" representedClassName="OrderEntity" syncable="YES">
+        <attribute name="createdAt" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="direction" attributeType="String"/>
+        <attribute name="executedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="id" attributeType="String"/>
+        <attribute name="price" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="quantity" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="status" attributeType="String"/>
+        <attribute name="symbol" attributeType="String"/>
+        <attribute name="type" attributeType="String"/>
+        <relationship name="stock" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="StockEntity" inverseName="orders" inverseEntity="StockEntity"/>
+        <uniquenessConstraints>
+            <uniquenessConstraint>
+                <constraint value="id"/>
+            </uniquenessConstraint>
+        </uniquenessConstraints>
+    </entity>
+    <entity name="StrategySignalEntity" representedClassName="StrategySignalEntity" syncable="YES">
+        <attribute name="confidence" optional="YES" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="id" attributeType="String"/>
+        <attribute name="price" optional="YES" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="signal" attributeType="String"/>
+        <attribute name="symbol" attributeType="String"/>
+        <attribute name="timestamp" attributeType="Date" usesScalarValueType="NO"/>
+        <relationship name="strategy" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="StrategyEntity" inverseName="signals" inverseEntity="StrategyEntity"/>
+        <uniquenessConstraints>
+            <uniquenessConstraint>
+                <constraint value="id"/>
+            </uniquenessConstraint>
+        </uniquenessConstraints>
+    </entity>
+</model>

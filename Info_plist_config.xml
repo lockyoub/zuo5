@@ -1,0 +1,37 @@
+<!-- 
+iOS应用Info.plist网络权限配置
+服务器IP: 8.130.172.202
+将以下内容添加到您的iOS项目的Info.plist文件中
+-->
+
+<key>NSAppTransportSecurity</key>
+<dict>
+    <key>NSExceptionDomains</key>
+    <dict>
+        <key>8.130.172.202</key>
+        <dict>
+            <key>NSExceptionAllowsInsecureHTTPLoads</key>
+            <true/>
+            <key>NSExceptionMinimumTLSVersion</key>
+            <string>TLSv1.0</string>
+            <key>NSExceptionPortRequiresSecureHTTP</key>
+            <false/>
+        </dict>
+    </dict>
+    <!-- 可选：允许任意HTTP加载（更宽松的设置，仅用于开发） -->
+    <!-- 
+    <key>NSAllowsArbitraryLoads</key>
+    <true/>
+    -->
+</dict>
+
+<!-- 网络使用说明（App Store审核时可能需要） -->
+<key>NSNetworkUsageDescription</key>
+<string>本应用需要网络权限获取实时股票数据和交易信息</string>
+
+<!-- 后台应用刷新权限（如果需要后台更新数据） -->
+<key>UIBackgroundModes</key>
+<array>
+    <string>background-fetch</string>
+    <string>background-processing</string>
+</array>
