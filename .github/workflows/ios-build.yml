@@ -559,7 +559,7 @@ jobs:
         
         # 清理之前的构建
         xcodebuild clean \
-          -project StockTradingApp.xcodeproj \
+          -package-path ios \
           -scheme ${{ env.SCHEME_NAME }} \
           -configuration ${{ github.event.inputs.build_configuration || 'Release' }}
           
@@ -571,7 +571,7 @@ jobs:
         
         # 构建应用到模拟器
         xcodebuild build \
-          -project StockTradingApp.xcodeproj \
+          -package-path ios \
           -scheme ${{ env.SCHEME_NAME }} \
           -configuration $BUILD_CONFIGURATION \
           -destination 'generic/platform=iOS Simulator' \
@@ -589,7 +589,7 @@ jobs:
         
         # 构建真机版本
         xcodebuild build \
-          -project StockTradingApp.xcodeproj \
+          -package-path ios \
           -scheme ${{ env.SCHEME_NAME }} \
           -configuration $BUILD_CONFIGURATION \
           -destination 'generic/platform=iOS' \
