@@ -551,25 +551,24 @@ jobs:
     - name: 列出项目文件
       run: |
         echo "=== 项目文件结构 ==="
-        find ios/ -type f -name "*.swift" -o -name "*.plist" -o -name "*.pbxproj" | head -20
-        
-    - name: 清理和构建项目
+        find ios/ -type f \( -name "*.swift" -o -name "*.plist" -o -name "*.pbxproj" \) | head -20
+
+    - name: 清理之前的构建
       run: |
         cd ios
-        
-        # 清理之前的构建
         xcodebuild clean \
           -package-path ios \
           -scheme ${{ env.SCHEME_NAME }} \
-          -configuration ${{ github.event.inputs.build_configuration || 'Release' }}
-          
-    - name: 构建应用程序
+          -configuration ${{ github.event.inputs.build_configuration || 'Release' }} \
+          CODE_SIGN_IDENTITY="" \
+          CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGNING_ALLOWED=NO
+
+    - name: 构建应用程序（模拟器）
       env:
         BUILD_CONFIGURATION: ${{ github.event.inputs.build_configuration || 'Release' }}
       run: |
         cd ios
-        
-        # 构建应用到模拟器
         xcodebuild build \
           -package-path ios \
           -scheme ${{ env.SCHEME_NAME }} \
@@ -580,14 +579,12 @@ jobs:
           CODE_SIGNING_REQUIRED=NO \
           CODE_SIGNING_ALLOWED=NO \
           ONLY_ACTIVE_ARCH=NO
-          
+
     - name: 构建真机版本（用于IPA）
       env:
         BUILD_CONFIGURATION: ${{ github.event.inputs.build_configuration || 'Release' }}
       run: |
         cd ios
-        
-        # 构建真机版本
         xcodebuild build \
           -package-path ios \
           -scheme ${{ env.SCHEME_NAME }} \
@@ -598,13 +595,12 @@ jobs:
           CODE_SIGNING_REQUIRED=NO \
           CODE_SIGNING_ALLOWED=NO \
           ONLY_ACTIVE_ARCH=NO
-          
+
     - name: 创建未签名IPA
       if: ${{ github.event.inputs.export_unsigned == 'true' || github.event.inputs.export_unsigned == true }}
       run: |
         cd ios
-        
-        # 查找构建的应用程序
+        # 找到真机构建的.app路径
         APP_PATH=$(find build/Build/Products/${{ github.event.inputs.build_configuration || 'Release' }}-iphoneos -name "*.app" | head -1)
         
         if [ -z "$APP_PATH" ]; then
@@ -614,34 +610,34 @@ jobs:
         
         echo "找到应用程序: $APP_PATH"
         
-        # 创建Payload目录
-        mkdir -p Payload
+        # 清理旧Payload文件夹
+        rm -rf Payload
         
-        # 复制应用程序到Payload目录
+        # 创建Payload目录并复制.app
+        mkdir -p Payload
         cp -R "$APP_PATH" Payload/
         
-        # 创建IPA文件
-        zip -r "StockTradingApp-unsigned.ipa" Payload/
+        # 创建IPA包
+        zip -r StockTradingApp-unsigned.ipa Payload/
         
-        # 验证IPA文件
-        ls -la *.ipa
+        # 查看IPA信息
+        ls -lh StockTradingApp-unsigned.ipa
         
-        # 显示应用信息
-        echo "=== 应用程序信息 ==="
+        # 读取Info.plist里的应用信息
         /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP_PATH/Info.plist" || echo "无法读取Bundle ID"
         /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$APP_PATH/Info.plist" || echo "无法读取版本号"
         /usr/libexec/PlistBuddy -c "Print :CFBundleDisplayName" "$APP_PATH/Info.plist" || echo "无法读取显示名称"
-        
+
     - name: 上传IPA构建产物
       if: ${{ github.event.inputs.export_unsigned == 'true' || github.event.inputs.export_unsigned == true }}
       uses: actions/upload-artifact@v4
       with:
         name: StockTradingApp-IPA-${{ github.event.inputs.build_configuration || 'Release' }}-${{ github.run_number }}
         path: |
-          ios/*.ipa
+          ios/StockTradingApp-unsigned.ipa
           ios/build/Build/Products/**/*.dSYM
         retention-days: 30
-        
+
     - name: 上传应用程序文件
       uses: actions/upload-artifact@v4
       with:
@@ -650,6 +646,7 @@ jobs:
           ios/build/Build/Products/**/*.app
           ios/build/Build/Products/**/*.dSYM
         retention-days: 30
+
         
     - name: 生成构建报告
       run: |
